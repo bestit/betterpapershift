@@ -1,0 +1,20 @@
+{
+	"manifest_version": 2,
+	"name": "Better Papershift",
+	"description": "This extension improves some small UI features of Papershift.",
+	"version": "0.1.1",
+	"browser_action": {
+		"default_icon": "icon.png",
+		/* "default_popup": "popup.html", */
+		"default_title": "Better Papershift"
+	},
+	"permissions": [
+		"activeTab",
+		"storage"
+	],
+	"options_page": "options.html",
+	"content_scripts": [{
+		"matches": ["https://app.papershift.com/*/time_trackings"],
+		"js": ["timetrackings.js"]
+	}]
+}
