@@ -1,21 +1,49 @@
 <!DOCTYPE html>
 <html>
-<head><title>Better Papershipt Settings</title></head>
+
+<head>
+    <title>Better Papershipt Settings</title>
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+</head>
+
 <body>
+    <div class="container">
 
-<h2>Time Format:</h2>
-<select id="timeformat">
-    <option value="hour">1:30 h</option>
-    <option value="decimal">1.5 h</option>
-</select>
+        <div class="jumbotron">
+            <h1 class="display-4">Better Papershift Settings</h1>
+        </div>
 
-<div id="status"></div>
+        <div id="status"></div>
 
-<br>
-<br>
-<br>
-<button id="save">Save</button>
+        <h2>General Settings</h2>
+        <div class="row">
+            <div class="col-sm-4">
+                <form>
+                    <div class="form-group">
+                        <select id="timeformat" class="form-control">
+                            <option value="hour">1:30 h</option>
+                            <option value="decimal">1.5 h</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="col-sm-4"></div>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Feedback</h5>
+                        <p class="card-text">Do you have any other ideas that this extension should tackle?</p>
+                        <a href="https://github.com/julianhandl/betterpapershift" class="btn btn-primary">Issue on Github</a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<script src="options.js"></script>
+        <button id="save" class="btn btn-success">Save Settings</button>
+
+    </div>
+
+    <script src="options.js"></script>
 </body>
+
 </html>

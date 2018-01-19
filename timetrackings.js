@@ -110,7 +110,7 @@ function parse(table, timeformat){
                     var pauseSpanIndex = pauseColumn.innerHTML.indexOf('<span');
                     var pauseTimeString = pauseColumn.innerHTML.slice(0,pauseSpanIndex-1).trim();
                     var pauseTime = parseFloat(pauseTimeString.split(' ')[0]);
-                    pauseColumn.innerHTML = decimalToHour(pauseTime) + ' h';
+                    pauseColumn.innerHTML = decimalToHour(pauseTime) + ' h ' + pauseColumn.innerHTML.substring(pauseSpanIndex);
 
                 }
             }
