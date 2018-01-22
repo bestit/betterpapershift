@@ -29,7 +29,75 @@ var weekdays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 
 function parse(table, timeformat){
     var rows = table.getElementsByClassName("entry");
+    var weeks = [];
     var totalHoursInWeek = 0;
+
+    // parse row data
+    if(rows){
+        var week = [];
+        for(var i=0; i<rows.length; i++){
+            var row = rows[i];
+            
+            // get current day
+            var dayColumn = row.getElementsByClassName('day')[0];
+            var dayColumnHTML = dayColumn.innerHTML;
+            var currentDayName = dayColumnHTML.split(',')[0].slice(-2);
+            var currentDayMeta = dayColumn.getElementsByTagName('span')[0].innerHTML;
+            var currentDayDateString = currentDayMeta.substring(0, 8);
+            var currentDayHourString = currentDayMeta.slice(-5);
+            var day = {
+                row: row,
+                name: currentDayName,
+                startDate: new Date(currentDayDateString.slice(0,4), parseInt(currentDayDateString.slice(4,6))-1, currentDayDateString.slice(6,8), currentDayHourString.split(':')[0], currentDayHourString.split(':')[1]),
+                startHour: currentDayHourString
+            };
+            
+            // get netto hours
+            var nettoHoursColumn = row.getElementsByClassName('netto netto_time')[0];
+            var nettoHours = parseFloat(nettoHoursColumn.innerHTML.split(' ')[0]);
+            day.nettoHours = {
+                value: nettoHours,
+                html: nettoHoursColumn.innerHTML
+            };
+
+            // get brutto hours
+            var bruttoColumn = row.getElementsByClassName('brutto')[0];
+            var bruttoTime = parseFloat(bruttoColumn.innerHTML.split(' ')[0]);
+            day.bruttoTime = {
+                value: bruttoTime,
+                html: bruttoColumn.innerHTML
+            };
+
+            // check if day is still running
+            var timeColumn = row.getElementsByClassName("end_start_time")[0];
+            var entryIsRunning = timeColumn.innerHTML.indexOf("Seit") >= 0; 
+            day.running = entryIsRunning;
+            if(entryIsRunning){
+                day.endHour = null;
+            }
+            else{
+                var times = timeColumn.innerHTML.substring(timeColumn.innerHTML.indexOf('</span>')+8).trim().split(' - ');
+                day.endHour = times[1].split(' ')[0];
+            }
+
+
+            // start new week
+            if(i === rows.length-1){
+                week.unshift(day);
+                weeks.push(week);
+                week = [];
+            }
+            else if(week.length > 0 && weekdays.indexOf(week[0].name) < weekdays.indexOf(day.name)){
+                weeks.push(week);
+                week = [];
+            }
+
+            week.unshift(day);
+
+        }
+    }
+
+    console.log("Weeks", weeks);
 
     if(rows){
         for(var i=0; i<rows.length; i++){
@@ -86,8 +154,8 @@ function parse(table, timeformat){
 
                     // if timeformat is hour, convert and set html
                     if(timeformat === "hour"){
-                        pauseCol.innerHTML = decimalToHour(pauseLength) + " h " + (pauseCol.innerHTML.substring(pauseCol.innerHTML.indexOf('<span')));
                         nettoHoursColumn.innerHTML = decimalToHour(nettoHours) + " h";
+                        pauseCol.innerHTML = decimalToHour(pauseLength) + " h " + (pauseCol.innerHTML.substring(pauseCol.innerHTML.indexOf('<span')));
                     }
                     else{
                         nettoHoursColumn.innerHTML = nettoHours + " h";
