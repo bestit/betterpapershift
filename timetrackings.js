@@ -49,8 +49,9 @@ function parse(table, timeformat){
                 row: row,
                 name: currentDayName,
                 startDate: new Date(currentDayDateString.slice(0,4), parseInt(currentDayDateString.slice(4,6))-1, currentDayDateString.slice(6,8), currentDayHourString.split(':')[0], currentDayHourString.split(':')[1]),
-                startHour: currentDayHourString
+                startHour: currentDayHourString,
             };
+            day.columnDay = dayColumn;
             
             // get netto hours
             var nettoHoursColumn = row.getElementsByClassName('netto netto_time')[0];
@@ -59,6 +60,7 @@ function parse(table, timeformat){
                 value: nettoHours,
                 html: nettoHoursColumn.innerHTML
             };
+            day.columnNetto = nettoHoursColumn;
 
             // get brutto hours
             var bruttoColumn = row.getElementsByClassName('brutto')[0];
@@ -67,17 +69,65 @@ function parse(table, timeformat){
                 value: bruttoTime,
                 html: bruttoColumn.innerHTML
             };
+            day.columnBrutto = bruttoColumn;
 
             // check if day is still running
             var timeColumn = row.getElementsByClassName("end_start_time")[0];
             var entryIsRunning = timeColumn.innerHTML.indexOf("Seit") >= 0; 
             day.running = entryIsRunning;
+            day.columnTime = timeColumn;
             if(entryIsRunning){
                 day.endHour = null;
             }
             else{
                 var times = timeColumn.innerHTML.substring(timeColumn.innerHTML.indexOf('</span>')+8).trim().split(' - ');
                 day.endHour = times[1].split(' ')[0];
+            }
+
+            // get pause
+            var pauseColumn = row.getElementsByClassName('pause')[0];
+            var pauseString = pauseColumn.innerHTML.trim();
+            var pauseValue = null;
+            if(entryIsRunning){
+                var hasUnregisteredPause = pauseColumn.getElementsByTagName('span').length > 0;
+                if(!hasUnregisteredPause){
+                    pauseValue = 0.0;
+                }
+            }
+            if(pauseValue === null){
+                var pauseValueString = pauseString;
+                var pauseDetailedOverlay = pauseColumn.getElementsByTagName('i');
+                var pauseDetailedString = null;
+                if(pauseDetailedOverlay && pauseDetailedOverlay.length > 0){
+                    pauseValueString = pauseString.substring(0,pauseString.indexOf('<span')-1).split(' ')[0];
+                    pauseDetailedString = pauseColumn.getElementsByTagName('i')[0].getAttribute('data-detailed-pauses');
+                }
+                var pauseDetails = [];
+                if(pauseDetailedString){
+                    pauseDetails = pauseDetailedString.split('<br>');
+                }
+                var pause = {
+                    value: parseFloat(pauseValueString),
+                    items: []
+                };
+                pauseDetails.map(function(p){
+                    var start = p.split(' - ')[0];
+                    var end = p.split(' - ')[1];
+                    var value = hourToDecimal(end) - hourToDecimal(start);
+                    pause.items.push({
+                        start: start,
+                        end: end,
+                        value: value
+                    });
+                    if(entryIsRunning){
+                        pause.value += value;
+                    }
+                });
+
+                // TODO: Make this a setting: If more than 6h pause must be >= 0.5h
+                if(pause.value < 0.5 && day.bruttoTime.value > 6.0){
+                    pause.value = 0.5;
+                }
             }
 
 
@@ -242,6 +292,13 @@ function leftPad(number, length){
 // add zeros to the right
 function rightPad(number, length){
     return (number.toString() + "0000000000").slice(0, length);
+}
+
+// convert number format to decimal
+function hourToDecimal(rawtime){
+    var hours = parseFloat(rawtime.split(':')[0]);
+    var minutes = parseInt(rawtime.split(':')[1]);
+    return hours + (minutes / 60);
 }
 
 // convert a dezimal number to hour format (2.5h => 2:30h)
