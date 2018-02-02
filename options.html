@@ -18,6 +18,7 @@
         <h2>General Settings</h2>
         <div class="row">
             <div class="col-sm-4">
+                <h3>Hour Format</h3>
                 <form>
                     <div class="form-group">
                         <select id="timeformat" class="form-control">
@@ -27,7 +28,28 @@
                     </div>
                 </form>
             </div>
-            <div class="col-sm-4"></div>
+            <div class="col-sm-4">
+                <h3>Minimal Pause</h3>
+                <form>
+                    <div class="form-group">
+                        <select id="forced-pause" class="form-control">
+                            <option value="0">0 h</option>
+                            <option value="0.5">0.5 h</option>
+                            <option value="1">1 h</option>
+                        </select>
+                    </div>
+                    <p>After a work day of at least:</p>
+                    <div class="form-group">
+                        <select id="forced-pause-hours" class="form-control">
+                            <option value="6">6 h</option>
+                            <option value="7">7 h</option>
+                            <option value="8">8 h</option>
+                            <option value="9">9 h</option>
+                            <option value="10">10 h</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
             <div class="col-sm-4">
                 <div class="card">
                     <div class="card-body">
