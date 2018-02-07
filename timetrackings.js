@@ -34,6 +34,7 @@ chrome.storage.sync.get({
 });
 
 var weekdays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+var workdays = ['Mo','Di','Mi','Do','Fr'];
 
 function parse(table, settings){
     var rows = table.getElementsByClassName("entry");
@@ -167,13 +168,127 @@ function parse(table, settings){
     console.log("Weeks", weeks);
 
     renderIntoTable(weeks, settings); 
+    renderPseudoDays(weeks, settings);
+}
+
+function renderPseudoDays(weeks, settings){
+    var currentWeek = weeks[0];
+    if(currentWeek.length < 6){
+        var table = document.getElementById('time_trackings_list');
+        var lastDay = currentWeek.reduce(function(lastDay, day){
+            if(day.name) return day;
+        },null);
+        var missingDays = workdays.slice(workdays.indexOf(lastDay.name)+1);
+        var pseudoDayObjects = {};
+        missingDays.forEach(function(dayName, index){
+            var day = new Date();
+            day.setDate(day.getDate() + 1 + index);
+
+            var dayObject = {
+                day: day,
+                name: dayName,
+                from: '07:06',
+                to: '15:55',
+                pause: 0.5
+            };
+            pseudoDayObjects[dayName] = dayObject;
+            
+
+            var row = document.createElement('tr');
+            row.style = 'color: #ccc';
+            row.appendChild(document.createElement('td'));
+
+            // Day Column
+            var columnDay = document.createElement('td');
+            columnDay.innerHTML = dayName + ', ' + leftPad(day.getDay(),2) + '.' + leftPad(day.getMonth(),2) + '.';
+            row.appendChild(columnDay);
+
+            // Time Column
+            var columnTime = document.createElement('td');
+            columnTime.style = 'display:flex;';
+            var fromTime = document.createElement('input');
+            fromTime.style = 'width: 60px;margin-right:10px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
+            fromTime.value = dayObject.from;
+            var toTime = document.createElement('input');
+            toTime.style = 'width: 60px;margin-left:10px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
+            toTime.value = dayObject.to;
+            columnTime.appendChild(fromTime);
+            columnTime.appendChild(document.createTextNode(' - '));
+            columnTime.appendChild(toTime);
+            row.appendChild(columnTime);
+
+            // Brutto Time Column
+            var columnBrutto = document.createElement('td');
+            columnBrutto.innerHTML = roundDecimalHour(parseFloat(hourToDecimal(toTime.value)) - parseFloat(hourToDecimal(fromTime.value))) + ' h';
+            row.appendChild(columnBrutto);
+
+            // Pause Column
+            var columnPause = document.createElement('td');
+            var pauseTime = document.createElement('input');
+            pauseTime.style = 'width: 60px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
+            pauseTime.value = dayObject.pause.toString() + ' h';
+            columnPause.appendChild(pauseTime);
+            row.appendChild(columnPause);
+
+            // Netto Column
+            var columnNetto = document.createElement('td');
+            columnNetto.innerHTML = (roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from)) - dayObject.pause) + ' h';
+            row.appendChild(columnNetto);
+
+            row.appendChild(document.createElement('td'));
+            row.appendChild(document.createElement('td'));
+            row.appendChild(document.createElement('td'));
+            table.prepend(row);
+
+            // functions
+
+            // recalculate Sum
+            var recalculateSum = function(){
+                var total = currentWeek.rowSum.getElementsByTagName('td')[5];
+                var currentNetto = currentWeek.reduce(function(sum,day){
+                    if(day.nettoTime) return sum + day.nettoTime.value;
+                    return sum;
+                },0.0);
+                var currentNettoWithoutToday = currentWeek.reduce(function(sum,day){
+                    if(day.nettoTime && day !== lastDay) return sum + day.nettoTime.value;
+                    return sum;
+                },0.0);
+                var pseudoNetto = Object.values(pseudoDayObjects).reduce(function(sum,day){
+                    return sum + roundDecimalHour(hourToDecimal(day.to) - hourToDecimal(day.from) - day.pause);
+                },0.0);
+                var currentTotal = roundDecimalHour(currentNetto + pseudoNetto) + ' h';
+                total.innerHTML = currentTotal;
+
+                var timeRemaining = 38.5 - currentNettoWithoutToday - pseudoNetto;
+                lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr';
+            }
+
+            // recalculate Row
+            var recalculateRow = function(){
+                dayObject.from = fromTime.value;
+                dayObject.to = toTime.value;
+                var brutto = roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from));
+                columnBrutto.innerHTML = brutto + ' h';
+                var pause = parseFloat(pauseTime.value.slice(0,pauseTime.value.length-2));
+                dayObject.pause = pause;
+                columnNetto.innerHTML = roundDecimalHour(brutto - pause) + ' h';
+                recalculateSum();
+            }
+
+            fromTime.onchange = recalculateRow;
+            toTime.onchange = recalculateRow;
+            pauseTime.onchange = recalculateRow;
+            
+            recalculateSum();
+        });
+    }
 }
 
 function renderIntoTable(weeks, settings){
     // delete included overview lines
 
     weeks.forEach(function(week){
-        if(week.rowOverview) week.rowOverview.remove(); 
+        if(week.rowSum) week.rowSum.remove(); 
 
         week.forEach(function(day){
             // Work on Zeiten
@@ -222,6 +337,7 @@ function renderIntoTable(weeks, settings){
 
         // include overview line
         var sumRow = document.createElement('tr');
+        week.rowSum = sumRow;
         sumRow.appendChild(document.createElement('td'));
         sumRow.appendChild(document.createElement('td'));
         sumRow.appendChild(document.createElement('td'));
@@ -319,6 +435,10 @@ function leftPad(number, length){
 function rightPad(number, length){
     var value = number || 0;
     return (value.toString() + "0000000000").slice(0, length);
+}
+
+function roundDecimalHour(value){
+    return (Math.round((value) *100) / 100);
 }
 
 // convert number format to decimal
