@@ -12,6 +12,8 @@ chrome.storage.sync.get({
         minPauseHours: items.minPauseHours
     };
 
+    console.log(settings)
+
     // check with an interval if the table is rendered
     var checkInterval = setInterval(function(){
         var currentTable = document.getElementById("time_trackings_list");
@@ -303,22 +305,27 @@ function renderIntoTable(weeks, settings){
 
             // Work on Pause
             var pauseOverlayIndex = day.columnPause.innerHTML.indexOf('<span');
+            var pauseValue = day.pause.value;
+            if(day.bruttoTime.value > settings.minPauseHours && pauseValue < parseFloat(settings.minPause)){
+                pauseValue = parseFloat(settings.minPause);
+            }
+            console.log(day.pause.value, day.bruttoTime.value, settings, settings.minPause)
             if(settings.timeformat === "hour"){
                 if(pauseOverlayIndex){
                     var pauseOverlay = day.columnPause.innerHTML.slice(pauseOverlayIndex);
-                    day.columnPause.innerHTML = decimalToHour(day.pause.value) + " h " + pauseOverlay;
+                    day.columnPause.innerHTML = decimalToHour(pauseValue) + " h " + pauseOverlay;
                 }
                 else{
-                    day.columnPause.innerHTML = decimalToHour(day.pause.value)+ " h";
+                    day.columnPause.innerHTML = decimalToHour(pauseValue)+ " h";
                 }
             }
             else{
                 if(pauseOverlayIndex){
                     var pauseOverlay = day.columnPause.innerHTML.slice(pauseOverlayIndex);
-                    day.columnPause.innerHTML = day.pause.value.toFixed(1) + " h " + pauseOverlay;
+                    day.columnPause.innerHTML = pauseValue.toFixed(1) + " h " + pauseOverlay;
                 }
                 else{
-                    day.columnPause.innerHTML = day.pause.value.toFixed(1) + " h";
+                    day.columnPause.innerHTML = pauseValue.toFixed(1) + " h";
                 }
             }
 
