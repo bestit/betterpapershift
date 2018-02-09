@@ -4,15 +4,13 @@
 chrome.storage.sync.get({
     timeformat: 'decimal',
     minPause: '0',
-    minPauseHours: undefined
+    minPauseHours: 1000
 }, function (items) {
     var settings = {
         timeformat: items.timeformat,
         minPause: items.minPause,
         minPauseHours: items.minPauseHours
     };
-
-    console.log(settings)
 
     // check with an interval if the table is rendered
     var checkInterval = setInterval(function(){
@@ -142,7 +140,7 @@ function parse(table, settings){
 
                 if(
                     settings.minPauseHours &&
-                    day.bruttoTime.value > parseFloat(setting.minPauseHours &&
+                    day.bruttoTime.value > parseFloat(settings.minPauseHours &&
                         pause.value < parseFloat(settings.minPause)
                 )){
                     pause.value = parseFloat(settings.minPause);
@@ -288,12 +286,31 @@ function renderPseudoDays(weeks, settings){
 
 function renderIntoTable(weeks, settings){
     // delete included overview lines
+    var sumRows = document.getElementsByClassName('sumrow');
+    if(sumRows && sumRows.length > 0){
+        sumRows.forEach(function(row){
+            row.delete();
+        });
+    }
 
     weeks.forEach(function(week){
         if(week.rowSum) week.rowSum.remove(); 
 
         week.forEach(function(day){
             // Work on Zeiten
+            if(day.name === 'Fr' && day.running){
+                var totalHours = week.reduce(function(sum,day){
+                    if(day.name !== 'Fr'){
+                        return sum + day.nettoTime.value;
+                    }
+                    return sum;
+                },0);
+                var missingHours = 38.5 - totalHours;
+                if(missingHours > settings.minPauseHours){
+                    missingHours += parseFloat(settings.minPause);
+                }
+                day.columnTime.innerHTML = day.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(day.startHour)+missingHours) + '</span> Uhr';
+            }
             
             // Work on Dauer (Brutto) 
             if(settings.timeformat === "hour"){
@@ -309,7 +326,6 @@ function renderIntoTable(weeks, settings){
             if(day.bruttoTime.value > settings.minPauseHours && pauseValue < parseFloat(settings.minPause)){
                 pauseValue = parseFloat(settings.minPause);
             }
-            console.log(day.pause.value, day.bruttoTime.value, settings, settings.minPause)
             if(settings.timeformat === "hour"){
                 if(pauseOverlayIndex){
                     var pauseOverlay = day.columnPause.innerHTML.slice(pauseOverlayIndex);
@@ -344,6 +360,7 @@ function renderIntoTable(weeks, settings){
 
         // include overview line
         var sumRow = document.createElement('tr');
+        sumRow.classList.add('sumrow');
         week.rowSum = sumRow;
         sumRow.appendChild(document.createElement('td'));
         sumRow.appendChild(document.createElement('td'));
