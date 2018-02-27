@@ -4,42 +4,90 @@
 chrome.storage.sync.get({
     timeformat: 'decimal',
     minPause: '0',
-    minPauseHours: 1000
+    minPauseHours: 1000,
+    active: true,
+    mondayStart: '',
+    mondayEnd: '',
+    mondayPause: '',
+    tuesdayStart: '',
+    tuesdayEnd: '',
+    tuesdayPause: '',
+    wednesdayStart: '',
+    wednesdayEnd: '',
+    wednesdayPause: '',
+    thursdayStart: '',
+    thursdayEnd: '',
+    thursdayPause: '',
+    fridayStart: '',
+    fridayEnd: '',
+    fridayPause: ''
 }, function (items) {
     var settings = {
         timeformat: items.timeformat,
         minPause: items.minPause,
-        minPauseHours: items.minPauseHours
+        minPauseHours: items.minPauseHours,
+        active: items.active,
+        mondayStart: items.mondayStart,
+        mondayEnd: items.mondayEnd,
+        mondayPause: items.mondayPause,
+        tuesdayStart: items.tuesdayStart,
+        tuesdayEnd: items.tuesdayEnd,
+        tuesdayPause: items.tuesdayPause,
+        wednesdayStart: items.wednesdayStart,
+        wednesdayEnd: items.wednesdayEnd,
+        wednesdayPause: items.wednesdayPause,
+        thursdayStart: items.thursdayStart,
+        thursdayEnd: items.thursdayEnd,
+        thursdayPause: items.thursdayPause,
+        fridayStart: items.fridayStart,
+        fridayEnd: items.fridayEnd,
+        fridayPause: items.fridayPause
     };
 
-    // check with an interval if the table is rendered
-    var checkInterval = setInterval(function(){
-        var currentTable = document.getElementById("time_trackings_list");
-        if(currentTable){
-            clearInterval(checkInterval);
-            parse(currentTable, settings);
+    if(settings.active){
+        // check with an interval if the table is rendered
+        var checkInterval = setInterval(function(){
+            var currentTable = document.getElementById("time_trackings_list");
+            if(currentTable){
+                clearInterval(checkInterval);
+                parse(currentTable, settings);
 
-            // observe table changes to react on table filtering
-            var observer = new MutationObserver(function(){
-                var newTable = document.getElementById("time_trackings_list");
-                if(currentTable !== newTable){
-                    parse(newTable, settings);
-                    currentTable = newTable;
-                }
-            });
+                // observe table changes to react on table filtering
+                var observer = new MutationObserver(function(){
+                    var newTable = document.getElementById("time_trackings_list");
+                    if(currentTable !== newTable){
+                        parse(newTable, settings);
+                        currentTable = newTable;
+                    }
+                });
 
-            observer.observe(document.getElementById('trackings_list'), { attributes: false, childList: true });
-        }
-    }, 50);
+                observer.observe(document.getElementById('trackings_list'), { attributes: false, childList: true });
+            }
+        }, 50);
+    }
 });
 
 var weekdays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 var workdays = ['Mo','Di','Mi','Do','Fr'];
+var dayNames = {
+    'Mo': 'monday',
+    'Di': 'tuesday',
+    'Mi': 'wednesday',
+    'Do': 'thursday',
+    'Fr': 'friday',
+    'Sa': 'saturday',
+    'So': 'sunday'
+};
 
 function parse(table, settings){
     var rows = table.getElementsByClassName("entry");
     var weeks = [];
     var totalHoursInWeek = 0;
+
+    var absences = localStorage.getItem('papershift_absences');
+    if(absences) absences = JSON.parse(absences);
+    else absences = [];
+    console.log("Absences", absences)
 
     // parse row data
     if(rows){
@@ -187,99 +235,134 @@ function renderPseudoDays(weeks, settings){
             var dayObject = {
                 day: day,
                 name: dayName,
-                from: '07:06',
-                to: '15:55',
-                pause: 0.5
+                date: leftPad(day.getDay(),2) + '.' + leftPad(day.getMonth(),2) + '.' + day.getFullYear(),
+                from: settings[dayNames[dayName] + 'Start'] || '08:00',
+                to: settings[dayNames[dayName] + 'End'] || '17:00',
+                pause: settings[dayNames[dayName] + 'Pause'] || 0.5
             };
             pseudoDayObjects[dayName] = dayObject;
+
+            chrome.storage.sync.get({
+                [dayObject.date + '-start']: '',
+                [dayObject.date + '-end']: '',
+                [dayObject.date + '-pause']: '',
+            },function(items){
+                if(items[dayObject.date + '-start']){
+                    dayObject.from = items[dayObject.date + '-start'];
+                }
+                if(items[dayObject.date + '-end']){
+                    dayObject.to = items[dayObject.date + '-end'];
+                }
+                if(items[dayObject.date + '-pause']){
+                    dayObject.pause = items[dayObject.date + '-pause'];
+                }
             
+                var row = document.createElement('tr');
+                row.style = 'color: #ccc';
+                row.appendChild(document.createElement('td'));
 
-            var row = document.createElement('tr');
-            row.style = 'color: #ccc';
-            row.appendChild(document.createElement('td'));
+                // Day Column
+                var columnDay = document.createElement('td');
+                columnDay.innerHTML = dayName + ', ' + leftPad(day.getDay(),2) + '.' + leftPad(day.getMonth(),2) + '.';
+                row.appendChild(columnDay);
 
-            // Day Column
-            var columnDay = document.createElement('td');
-            columnDay.innerHTML = dayName + ', ' + leftPad(day.getDay(),2) + '.' + leftPad(day.getMonth(),2) + '.';
-            row.appendChild(columnDay);
+                // Time Column
+                var columnTime = document.createElement('td');
+                columnTime.style = 'display:flex;';
+                var fromTime = document.createElement('input');
+                fromTime.style = 'width: 60px;margin-right:10px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
+                fromTime.value = dayObject.from;
+                var toTime = document.createElement('input');
+                toTime.style = 'width: 60px;margin-left:10px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
+                toTime.value = dayObject.to;
+                columnTime.appendChild(fromTime);
+                columnTime.appendChild(document.createTextNode(' - '));
+                columnTime.appendChild(toTime);
+                row.appendChild(columnTime);
 
-            // Time Column
-            var columnTime = document.createElement('td');
-            columnTime.style = 'display:flex;';
-            var fromTime = document.createElement('input');
-            fromTime.style = 'width: 60px;margin-right:10px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
-            fromTime.value = dayObject.from;
-            var toTime = document.createElement('input');
-            toTime.style = 'width: 60px;margin-left:10px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
-            toTime.value = dayObject.to;
-            columnTime.appendChild(fromTime);
-            columnTime.appendChild(document.createTextNode(' - '));
-            columnTime.appendChild(toTime);
-            row.appendChild(columnTime);
+                // Brutto Time Column
+                var columnBrutto = document.createElement('td');
+                columnBrutto.innerHTML = roundDecimalHour(parseFloat(hourToDecimal(toTime.value)) - parseFloat(hourToDecimal(fromTime.value))) + ' h';
+                row.appendChild(columnBrutto);
 
-            // Brutto Time Column
-            var columnBrutto = document.createElement('td');
-            columnBrutto.innerHTML = roundDecimalHour(parseFloat(hourToDecimal(toTime.value)) - parseFloat(hourToDecimal(fromTime.value))) + ' h';
-            row.appendChild(columnBrutto);
+                // Pause Column
+                var columnPause = document.createElement('td');
+                var pauseTime = document.createElement('input');
+                pauseTime.style = 'width: 60px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
+                pauseTime.value = dayObject.pause.toString() + ' h';
+                columnPause.appendChild(pauseTime);
+                row.appendChild(columnPause);
 
-            // Pause Column
-            var columnPause = document.createElement('td');
-            var pauseTime = document.createElement('input');
-            pauseTime.style = 'width: 60px;background:#f2f2f2;border:solid 1px #e7e7e7;color:#bbb;text-align:center;';
-            pauseTime.value = dayObject.pause.toString() + ' h';
-            columnPause.appendChild(pauseTime);
-            row.appendChild(columnPause);
+                // Netto Column
+                var columnNetto = document.createElement('td');
+                columnNetto.innerHTML = (roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from)) - dayObject.pause) + ' h';
+                row.appendChild(columnNetto);
 
-            // Netto Column
-            var columnNetto = document.createElement('td');
-            columnNetto.innerHTML = (roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from)) - dayObject.pause) + ' h';
-            row.appendChild(columnNetto);
+                row.appendChild(document.createElement('td'));
+                row.appendChild(document.createElement('td'));
+                row.appendChild(document.createElement('td'));
+                table.prepend(row);
 
-            row.appendChild(document.createElement('td'));
-            row.appendChild(document.createElement('td'));
-            row.appendChild(document.createElement('td'));
-            table.prepend(row);
+                // functions
 
-            // functions
+                // recalculate Sum
+                var recalculateSum = function(){
+                    var total = currentWeek.rowSum.getElementsByTagName('td')[5];
+                    var currentNetto = currentWeek.reduce(function(sum,day){
+                        if(day.nettoTime) return sum + day.nettoTime.value;
+                        return sum;
+                    },0.0);
+                    var currentNettoWithoutToday = currentWeek.reduce(function(sum,day){
+                        if(day.nettoTime && day !== lastDay) return sum + day.nettoTime.value;
+                        return sum;
+                    },0.0);
+                    var pseudoNetto = Object.values(pseudoDayObjects).reduce(function(sum,day){
+                        return sum + roundDecimalHour(hourToDecimal(day.to) - hourToDecimal(day.from) - day.pause);
+                    },0.0);
+                    var currentTotal = roundDecimalHour(currentNetto + pseudoNetto) + ' h';
+                    total.innerHTML = currentTotal;
 
-            // recalculate Sum
-            var recalculateSum = function(){
-                var total = currentWeek.rowSum.getElementsByTagName('td')[5];
-                var currentNetto = currentWeek.reduce(function(sum,day){
-                    if(day.nettoTime) return sum + day.nettoTime.value;
-                    return sum;
-                },0.0);
-                var currentNettoWithoutToday = currentWeek.reduce(function(sum,day){
-                    if(day.nettoTime && day !== lastDay) return sum + day.nettoTime.value;
-                    return sum;
-                },0.0);
-                var pseudoNetto = Object.values(pseudoDayObjects).reduce(function(sum,day){
-                    return sum + roundDecimalHour(hourToDecimal(day.to) - hourToDecimal(day.from) - day.pause);
-                },0.0);
-                var currentTotal = roundDecimalHour(currentNetto + pseudoNetto) + ' h';
-                total.innerHTML = currentTotal;
+                    var timeRemaining = 38.5 - currentNettoWithoutToday - pseudoNetto;
+                    lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr';
+                }
 
-                var timeRemaining = 38.5 - currentNettoWithoutToday - pseudoNetto;
-                lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr';
-            }
+                // recalculate Row
+                var recalculateRow = function(){
+                    dayObject.from = fromTime.value;
+                    dayObject.to = toTime.value;
+                    var brutto = roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from));
+                    columnBrutto.innerHTML = brutto + ' h';
+                    var pause = parseFloat(pauseTime.value.slice(0,pauseTime.value.length-2));
+                    dayObject.pause = pause;
+                    columnNetto.innerHTML = roundDecimalHour(brutto - pause) + ' h';
+                    recalculateSum();
+                }
 
-            // recalculate Row
-            var recalculateRow = function(){
-                dayObject.from = fromTime.value;
-                dayObject.to = toTime.value;
-                var brutto = roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from));
-                columnBrutto.innerHTML = brutto + ' h';
-                var pause = parseFloat(pauseTime.value.slice(0,pauseTime.value.length-2));
-                dayObject.pause = pause;
-                columnNetto.innerHTML = roundDecimalHour(brutto - pause) + ' h';
+                fromTime.onchange = function(e){
+                    var value = e.target.value;
+                    chrome.storage.sync.set({
+                        [dayObject.date + '-start']: value
+                    });
+                    recalculateRow();
+                };
+                toTime.onchange = function(e){
+                    var value = e.target.value;
+                    chrome.storage.sync.set({
+                        [dayObject.date + '-end']: value
+                    });
+                    recalculateRow();
+                };
+                pauseTime.onchange = function(e){
+                    var value = e.target.value;
+                    chrome.storage.sync.set({
+                        [dayObject.date + '-pause']: value.slice(0, -2)
+                    });
+                    recalculateRow();
+                };
+                
                 recalculateSum();
-            }
 
-            fromTime.onchange = recalculateRow;
-            toTime.onchange = recalculateRow;
-            pauseTime.onchange = recalculateRow;
-            
-            recalculateSum();
+            });
         });
     }
 }
