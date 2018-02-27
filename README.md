@@ -6,6 +6,7 @@ A small Chrome Extension that improves some stuff in [Papershift](https://www.pa
 - Include value of pause in running entries into the netto time
 - Show a row with the sum of a week inside the list
 - Option to show values in standard hour format (23:59)
+- Precalculate your workweek
 
 ## Changelog
 ### v 0.3
