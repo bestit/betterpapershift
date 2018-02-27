@@ -2,9 +2,11 @@
 
 // get settings
 chrome.storage.sync.get({
+    weekHours: '38.5',
     timeformat: 'decimal',
     minPause: '0',
     minPauseHours: 1000,
+    precalculateWeek: true,
     active: true,
     mondayStart: '',
     mondayEnd: '',
@@ -23,9 +25,11 @@ chrome.storage.sync.get({
     fridayPause: ''
 }, function (items) {
     var settings = {
+        weekHours: parseFloat(items.weekHours),
         timeformat: items.timeformat,
         minPause: items.minPause,
         minPauseHours: items.minPauseHours,
+        precalculateWeek: items.precalculateWeek,
         active: items.active,
         mondayStart: items.mondayStart,
         mondayEnd: items.mondayEnd,
@@ -193,7 +197,6 @@ function parse(table, settings){
                 )){
                     pause.value = parseFloat(settings.minPause);
                 }
-                pause.value = (Math.round((pause.value) *100) / 100);
             }
             day.pause = pause;
 
@@ -216,7 +219,10 @@ function parse(table, settings){
     console.log("Weeks", weeks);
 
     renderIntoTable(weeks, settings); 
-    renderPseudoDays(weeks, settings);
+
+    if(settings.precalculateWeek){
+        renderPseudoDays(weeks, settings);
+    }
 }
 
 function renderPseudoDays(weeks, settings){
@@ -282,7 +288,7 @@ function renderPseudoDays(weeks, settings){
 
                 // Brutto Time Column
                 var columnBrutto = document.createElement('td');
-                columnBrutto.innerHTML = roundDecimalHour(parseFloat(hourToDecimal(toTime.value)) - parseFloat(hourToDecimal(fromTime.value))) + ' h';
+                columnBrutto.innerHTML = (parseFloat(hourToDecimal(toTime.value)) - parseFloat(hourToDecimal(fromTime.value))).toFixed(2) + ' h';
                 row.appendChild(columnBrutto);
 
                 // Pause Column
@@ -295,7 +301,7 @@ function renderPseudoDays(weeks, settings){
 
                 // Netto Column
                 var columnNetto = document.createElement('td');
-                columnNetto.innerHTML = (roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from)) - dayObject.pause) + ' h';
+                columnNetto.innerHTML = (hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from) - dayObject.pause).toFixed(2) + ' h';
                 row.appendChild(columnNetto);
 
                 row.appendChild(document.createElement('td'));
@@ -317,12 +323,15 @@ function renderPseudoDays(weeks, settings){
                         return sum;
                     },0.0);
                     var pseudoNetto = Object.values(pseudoDayObjects).reduce(function(sum,day){
-                        return sum + roundDecimalHour(hourToDecimal(day.to) - hourToDecimal(day.from) - day.pause);
+                        return sum + (hourToDecimal(day.to) - hourToDecimal(day.from) - day.pause);
                     },0.0);
-                    var currentTotal = roundDecimalHour(currentNetto + pseudoNetto) + ' h';
+                    var currentTotal = (currentNetto + pseudoNetto).toFixed(2) + ' h';
                     total.innerHTML = currentTotal;
 
-                    var timeRemaining = 38.5 - currentNettoWithoutToday - pseudoNetto;
+                    var timeRemaining = settings.weekHours - currentNettoWithoutToday - pseudoNetto;
+                    if(lastDay.pause.value < 0.5 && timeRemaining > 6.0){
+                        timeRemaining += 0.5;
+                    }
                     lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr';
                 }
 
@@ -330,11 +339,11 @@ function renderPseudoDays(weeks, settings){
                 var recalculateRow = function(){
                     dayObject.from = fromTime.value;
                     dayObject.to = toTime.value;
-                    var brutto = roundDecimalHour(hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from));
+                    var brutto = hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from);
                     columnBrutto.innerHTML = brutto + ' h';
                     var pause = parseFloat(pauseTime.value.slice(0,pauseTime.value.length-2));
                     dayObject.pause = pause;
-                    columnNetto.innerHTML = roundDecimalHour(brutto - pause) + ' h';
+                    columnNetto.innerHTML = (brutto - pause).toFixed() + ' h';
                     recalculateSum();
                 }
 
@@ -388,7 +397,7 @@ function renderIntoTable(weeks, settings){
                     }
                     return sum;
                 },0);
-                var missingHours = 38.5 - totalHours;
+                var missingHours = settings.weekHours - totalHours;
                 if(missingHours > settings.minPauseHours){
                     missingHours += parseFloat(settings.minPause);
                 }
@@ -450,32 +459,32 @@ function renderIntoTable(weeks, settings){
         sumRow.appendChild(document.createElement('td'));
 
         var bruttoSum = document.createElement('td');
-        var bruttoSumValue = (Math.round((week.reduce(function(sum, day){ return sum + day.bruttoTime.value }, 0)) *100) / 100);
+        var bruttoSumValue = week.reduce(function(sum, day){ return sum + day.bruttoTime.value }, 0);
         if(settings.timeformat === "hour"){
             bruttoSum.innerHTML = decimalToHour(bruttoSumValue) + ' h'; 
         }
         else{
-            bruttoSum.innerHTML = bruttoSumValue + ' h'; 
+            bruttoSum.innerHTML = bruttoSumValue.toFixed(2) + ' h'; 
         }
         sumRow.appendChild(bruttoSum);
 
         var pauseSum = document.createElement('td');
-        var pauseSumValue = (Math.round((week.reduce(function(sum, day){ return sum + day.pause.value }, 0)) *100) / 100);
+        var pauseSumValue = week.reduce(function(sum, day){ return sum + day.pause.value }, 0);
         if(settings.timeformat === "hour"){
             pauseSum.innerHTML = decimalToHour(pauseSumValue) + ' h'; 
         }
         else{
-            pauseSum.innerHTML = pauseSumValue + ' h'; 
+            pauseSum.innerHTML = pauseSumValue.toFixed(2) + ' h'; 
         }
         sumRow.appendChild(pauseSum);
 
         var nettoSum = document.createElement('td');
-        var nettoSumValue = (Math.round((week.reduce(function(sum, day){ return sum + day.nettoTime.value }, 0)) *100) / 100);
+        var nettoSumValue = week.reduce(function(sum, day){ return sum + day.nettoTime.value }, 0);
         if(settings.timeformat === "hour"){
             nettoSum.innerHTML = decimalToHour(nettoSumValue) + ' h'; 
         }
         else{
-            nettoSum.innerHTML = nettoSumValue + ' h'; 
+            nettoSum.innerHTML = nettoSumValue.toFixed(2) + ' h'; 
         }
         nettoSum.style = 'font-weight:bold;';
         sumRow.appendChild(nettoSum);
@@ -493,42 +502,42 @@ function renderIntoTable(weeks, settings){
 
     setTimeout(function(){
         var totalSumBrutto = document.getElementById('sum_brutto');
-        var totalSumBruttoValue = (Math.round((weeks.reduce(function(sum, week){
+        var totalSumBruttoValue = weeks.reduce(function(sum, week){
             return sum + week.reduce(function(sum, day){
                 return sum + day.bruttoTime.value;
             },0);
-        }, 0)) *100) / 100);
+        }, 0);
         if(settings.timeformat === "hour"){
             totalSumBrutto.innerHTML = decimalToHour(totalSumBruttoValue) + ' h'; 
         }
         else{
-            totalSumBrutto.innerHTML = totalSumBruttoValue + ' h'; 
+            totalSumBrutto.innerHTML = totalSumBruttoValue.toFixed(2) + ' h'; 
         }
 
         var totalSumPause = document.getElementById('sum_pause');
-        var totalSumPauseValue = (Math.round((weeks.reduce(function(sum, week){
+        var totalSumPauseValue = weeks.reduce(function(sum, week){
             return sum + week.reduce(function(sum, day){
                 return sum + day.pause.value;
             },0);
-        }, 0)) *100) / 100);
+        }, 0);
         if(settings.timeformat === "hour"){
             totalSumPause.innerHTML = decimalToHour(totalSumPauseValue) + ' h'; 
         }
         else{
-            totalSumPause.innerHTML = totalSumPauseValue + ' h'; 
+            totalSumPause.innerHTML = totalSumPauseValue.toFixed(2) + ' h'; 
         }
 
         var totalSumNetto = document.getElementById('sum_netto');
-        var totalSumNettoValue = (Math.round((weeks.reduce(function(sum, week){
+        var totalSumNettoValue = weeks.reduce(function(sum, week){
             return sum + week.reduce(function(sum, day){
                 return sum + day.nettoTime.value;
             },0);
-        }, 0)) *100) / 100);
+        }, 0);
         if(settings.timeformat === "hour"){
             totalSumNetto.innerHTML = decimalToHour(totalSumNettoValue) + ' h'; 
         }
         else{
-            totalSumNetto.innerHTML = totalSumNettoValue + ' h'; 
+            totalSumNetto.innerHTML = totalSumNettoValue.toFixed(2) + ' h'; 
         }
     },500);
 }
@@ -544,10 +553,6 @@ function rightPad(number, length){
     return (value.toString() + "0000000000").slice(0, length);
 }
 
-function roundDecimalHour(value){
-    return (Math.round((value) *100) / 100);
-}
-
 // convert number format to decimal
 function hourToDecimal(rawtime){
     var hours = parseFloat(rawtime.split(':')[0]);
@@ -559,7 +564,7 @@ function hourToDecimal(rawtime){
 function decimalToHour(rawtime){
     if(rawtime == "0") return "0:0";
     var timeString = rawtime;
-    var time = (Math.round((timeString) *100) / 100);
+    var time = timeString.toFixed(2);
     var timeHours =  Math.floor(time);
     var timeMinuts = Math.round(parseInt(rightPad(time.toString().split('.')[1], 2)) / 100 * 60);
     var final = timeHours + ":" + leftPad(timeMinuts,2)

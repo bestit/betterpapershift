@@ -18,7 +18,13 @@
         <h2>General Settings</h2>
         <div class="row">
             <div class="col-sm-4">
-                <h3>Hour Format</h3>
+                <h5>Week Goad</h5>
+                <form>
+                    <div class="form-group">
+                        <input type="number" placeholder="38.5" id="weekHours" />
+                    </div>
+                </form>
+                <h5>Hour Format</h5>
                 <form>
                     <div class="form-group">
                         <select id="timeformat" class="form-control">
@@ -29,7 +35,7 @@
                 </form>
             </div>
             <div class="col-sm-4">
-                <h3>Minimal Pause</h3>
+                <h5>Minimal Pause</h5>
                 <form>
                     <div class="form-group">
                         <select id="forced-pause" class="form-control">
@@ -63,6 +69,13 @@
 
         <h2>Default Start and End Timing</h2>
         <div class="row">
+            <div class="col-sm-4">
+                <h5>Precalculate Week</h5>
+                <select id="precalculate-week" class="form-control">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
             <div class="col-sm-4">
                 <form>
                     <h5>Monday</h5>

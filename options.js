@@ -1,8 +1,10 @@
 // Saves options to chrome.storage
 function save_options() {
+    var weekHours = document.getElementById('weekHours').value;
     var timeformat = document.getElementById('timeformat').value;
     var minPause = document.getElementById('forced-pause').value;
     var minPauseHours = document.getElementById('forced-pause-hours').value;
+    var precalculateWeek = document.getElementById('precalculate-week').value === "true";
 
     var mondayStart = document.getElementById('monday-start').value;
     var mondayEnd = document.getElementById('monday-end').value;
@@ -25,9 +27,11 @@ function save_options() {
     var fridayPause = document.getElementById('friday-pause').value;
 
     chrome.storage.sync.set({
+        weekHours: weekHours,
         timeformat: timeformat,
         minPause: minPause,
         minPauseHours: minPauseHours,
+        precalculateWeek: precalculateWeek,
         mondayStart: mondayStart,
         mondayEnd: mondayEnd,
         mondayPause: mondayPause,
@@ -56,9 +60,11 @@ function save_options() {
 function restore_options() {
     // Use default value color = 'red' and likesColor = true.
     chrome.storage.sync.get({
+        weekHours: 38.5,
         timeformat: 'decimal',
         minPause: '0',
         minPauseHours: '6',
+        precalculateWeek: true,
         mondayStart: '',
         mondayEnd: '',
         mondayPause: '',
@@ -75,9 +81,11 @@ function restore_options() {
         fridayEnd: '',
         fridayPause: ''
     }, function (items) {
+        document.getElementById('weekHours').value = items.weekHours;
         document.getElementById('timeformat').value = items.timeformat;
         document.getElementById('forced-pause').value = items.minPause;
         document.getElementById('forced-pause-hours').value = items.minPauseHours;
+        document.getElementById('precalculateWeek').value = items.precalculateWeek.toString();
 
         document.getElementById('monday-start').value = items.mondayStart;
         document.getElementById('monday-end').value = items.mondayEnd;
