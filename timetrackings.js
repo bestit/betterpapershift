@@ -330,9 +330,9 @@ function renderPseudoDays(weeks, settings){
 
                     var timeRemaining = settings.weekHours - currentNettoWithoutToday - pseudoNetto;
                     if(lastDay.pause.value < 0.5 && timeRemaining > 6.0){
-                        timeRemaining += 0.5;
+                        timeRemaining += (0.5 - (lastDay.pause.value || 0));
                     }
-                    lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr';
+                    lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr *';
                 }
 
                 // recalculate Row
@@ -340,10 +340,10 @@ function renderPseudoDays(weeks, settings){
                     dayObject.from = fromTime.value;
                     dayObject.to = toTime.value;
                     var brutto = hourToDecimal(dayObject.to)-hourToDecimal(dayObject.from);
-                    columnBrutto.innerHTML = brutto + ' h';
+                    columnBrutto.innerHTML = brutto.toFixed(2) + ' h';
                     var pause = parseFloat(pauseTime.value.slice(0,pauseTime.value.length-2));
                     dayObject.pause = pause;
-                    columnNetto.innerHTML = (brutto - pause).toFixed() + ' h';
+                    columnNetto.innerHTML = (brutto - pause).toFixed(2) + ' h';
                     recalculateSum();
                 }
 
@@ -374,6 +374,11 @@ function renderPseudoDays(weeks, settings){
             });
         });
     }
+
+    var disclaimer = document.createElement('div');
+    disclaimer.style = 'position:absolute;top:90px;right:60px;';
+    disclaimer.innerHTML = '* precalculated Pause is included';
+    document.getElementById('wrap').appendChild(disclaimer);
 }
 
 function renderIntoTable(weeks, settings){
