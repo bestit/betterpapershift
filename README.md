@@ -10,6 +10,9 @@ A small Chrome Extension that improves some stuff in [Papershift](https://www.pa
 
 ## Changelog
 
+### v 0.4.1
+- Fixed critical bug in precalculation for today's end time
+
 ### v 0.4
 - Added precalculation of your workweek
 - Made numbers more precice

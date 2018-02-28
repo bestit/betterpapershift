@@ -27,8 +27,8 @@ chrome.storage.sync.get({
     var settings = {
         weekHours: parseFloat(items.weekHours),
         timeformat: items.timeformat,
-        minPause: items.minPause,
-        minPauseHours: items.minPauseHours,
+        minPause: parseFloat(items.minPause),
+        minPauseHours: parseFloat(items.minPauseHours),
         precalculateWeek: items.precalculateWeek,
         active: items.active,
         mondayStart: items.mondayStart,
@@ -328,11 +328,16 @@ function renderPseudoDays(weeks, settings){
                     var currentTotal = (currentNetto + pseudoNetto).toFixed(2) + ' h';
                     total.innerHTML = currentTotal;
 
-                    var timeRemaining = settings.weekHours - currentNettoWithoutToday - pseudoNetto;
-                    if(lastDay.pause.value < 0.5 && timeRemaining > 6.0){
-                        timeRemaining += (0.5 - (lastDay.pause.value || 0));
+                    var timeRemaining = parseFloat(settings.weekHours - currentNettoWithoutToday - pseudoNetto);
+                    if(lastDay.pause.value < settings.minPause && timeRemaining > settings.minPauseHours){
+                        var pause = lastDay.pause.value || 0;
+                        if(pause < settings.minPause){
+                            pause = settings.minPause;
+                        }
+                        timeRemaining += pause;
+                        console.log(timeRemaining, pause)
                     }
-                    lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:red">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr *';
+                    lastDay.columnTime.innerHTML = lastDay.startHour + ' - <span style="display:inline;color:#27ae60">' + decimalToHour(hourToDecimal(lastDay.startHour)+timeRemaining) + '</span> Uhr *';
                 }
 
                 // recalculate Row
