@@ -9,6 +9,11 @@ A small Chrome Extension that improves some stuff in [Papershift](https://www.pa
 - Precalculate your workweek
 
 ## Changelog
+
+### v 0.4
+- Added precalculation of your workweek
+- Made numbers more precice
+
 ### v 0.3
 - More robust parsing and replacing of the table
 - Hour and decimal format is supportet in the whole table
